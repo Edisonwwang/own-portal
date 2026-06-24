@@ -4,6 +4,20 @@ export type JournalEntry = {
   created_at: string;
 };
 
+export type Tag = {
+  id: number;
+  name: string;
+  color: string;
+};
+
+export type TagWithCount = Tag & {
+  count: number;
+};
+
+export type JournalEntryWithTags = JournalEntry & {
+  tags: Tag[];
+};
+
 export type MoodEntry = {
   id: number;
   mood_score: number | null;
@@ -53,4 +67,17 @@ export type WeeklySummary = {
   total_income: number;
   total_expenses: number;
   journal_days: number;
+};
+
+export type SearchResult = {
+  id: number;
+  excerpt: string;
+  created_at: string;
+};
+
+export type OnThisDayEntry = {
+  id: number;
+  raw_text: string;
+  created_at: string;
+  years_ago: number;
 };

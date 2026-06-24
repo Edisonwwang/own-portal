@@ -104,6 +104,41 @@ function initSchema(database: Database.Database) {
       description TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      color TEXT NOT NULL DEFAULT '#c9a84c',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS entry_tags (
+      entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+      tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (entry_id, tag_id)
+    );
+
+    CREATE TRIGGER IF NOT EXISTS entries_fts_ai
+    AFTER INSERT ON entries BEGIN
+      INSERT INTO entries_fts(rowid, raw_text) VALUES (new.id, new.raw_text);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS entries_fts_ad
+    AFTER DELETE ON entries BEGIN
+      INSERT INTO entries_fts(entries_fts, rowid, raw_text)
+      VALUES ('delete', old.id, old.raw_text);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS entries_fts_au
+    AFTER UPDATE ON entries BEGIN
+      INSERT INTO entries_fts(entries_fts, rowid, raw_text)
+      VALUES ('delete', old.id, old.raw_text);
+      INSERT INTO entries_fts(rowid, raw_text) VALUES (new.id, new.raw_text);
+    END;
+
+    INSERT INTO entries_fts(rowid, raw_text)
+    SELECT id, raw_text FROM entries
+    WHERE id NOT IN (SELECT rowid FROM entries_fts);
   `);
 
   migrateMoodEntries(database);

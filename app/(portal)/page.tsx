@@ -2,9 +2,18 @@ import { FinanceForm } from "@/components/forms/FinanceForm";
 import { JournalForm } from "@/components/forms/JournalForm";
 import { MoodForm } from "@/components/forms/MoodForm";
 import { EntryCard } from "@/components/ui/EntryCard";
+import { OnThisDayWidget } from "@/components/OnThisDayWidget";
+import { TagChip } from "@/components/tags/TagChip";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { WeeklySummaryWidget } from "@/components/WeeklySummaryWidget";
-import { getRecentJournalEntries, getTodaysFinanceEntries, getTodaysMoodEntries, getWeeklySummary } from "@/lib/queries";
+import {
+  getAllTags,
+  getOnThisDay,
+  getRecentEntries,
+  getTodaysFinanceEntries,
+  getTodaysMoodEntries,
+  getWeeklySummary
+} from "@/lib/queries";
 import Link from "next/link";
 
 function formatDate(value: string) {
@@ -13,9 +22,11 @@ function formatDate(value: string) {
 
 export default function HomePage() {
   const weeklySummary = getWeeklySummary();
-  const journalEntries = getRecentJournalEntries(5);
+  const onThisDayEntries = getOnThisDay();
+  const journalEntries = getRecentEntries(5);
   const moodEntries = getTodaysMoodEntries();
   const financeEntries = getTodaysFinanceEntries();
+  const recentTags = getAllTags(5);
 
   const todayLog = [
     ...moodEntries.map((entry) => ({ kind: "Mood" as const, created_at: entry.created_at, entry })),
@@ -26,6 +37,7 @@ export default function HomePage() {
     <>
       <PageHeader title="Home" description="Capture the day without turning it into a dashboard." />
       <WeeklySummaryWidget summary={weeklySummary} />
+      <OnThisDayWidget entries={onThisDayEntries} />
 
       <section className="space-y-5">
         <div className="flex items-center justify-between">
@@ -40,9 +52,24 @@ export default function HomePage() {
           {journalEntries.map((entry) => (
             <EntryCard key={entry.id} meta={formatDate(entry.created_at)}>
               <p className="line-clamp-2 whitespace-pre-wrap">{entry.raw_text}</p>
+              {entry.tags.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {entry.tags.map((tag) => (
+                    <TagChip key={tag.id} tag={tag} href={`/journal?tag=${tag.id}`} />
+                  ))}
+                </div>
+              ) : null}
             </EntryCard>
           ))}
         </div>
+        {recentTags.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm text-stone-500">
+            <span>Tags:</span>
+            {recentTags.map((tag) => (
+              <TagChip key={tag.id} tag={tag} href={`/journal?tag=${tag.id}`} />
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="mt-10">

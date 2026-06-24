@@ -5,8 +5,13 @@ import type {
   FinanceMonthPoint,
   FinanceTotals,
   JournalEntry,
+  JournalEntryWithTags,
   MoodDataPoint,
   MoodEntry,
+  OnThisDayEntry,
+  SearchResult,
+  Tag,
+  TagWithCount,
   WeeklySummary
 } from "./types";
 
@@ -34,6 +39,49 @@ export function getRecentJournalEntries(limit = 30): JournalEntry[] {
   return db
     .prepare("SELECT id, raw_text, created_at FROM entries ORDER BY created_at DESC LIMIT ?")
     .all(limit) as JournalEntry[];
+}
+
+export function getRecentEntries(limit = 30, tagId?: number): JournalEntryWithTags[] {
+  const entries = tagId
+    ? (db
+        .prepare(
+          `SELECT e.id, e.raw_text, e.created_at
+          FROM entries e
+          JOIN entry_tags et ON et.entry_id = e.id
+          WHERE et.tag_id = ?
+          ORDER BY e.created_at DESC
+          LIMIT ?`
+        )
+        .all(tagId, limit) as JournalEntry[])
+    : getRecentJournalEntries(limit);
+
+  return entries.map((entry) => ({
+    ...entry,
+    tags: getTagsForEntry(entry.id)
+  }));
+}
+
+export function getTagsForEntry(entryId: number): Tag[] {
+  return db
+    .prepare(
+      `SELECT t.id, t.name, t.color
+      FROM tags t
+      JOIN entry_tags et ON et.tag_id = t.id
+      WHERE et.entry_id = ?
+      ORDER BY t.name ASC`
+    )
+    .all(entryId) as Tag[];
+}
+
+export function getAllTags(limit?: number): TagWithCount[] {
+  const query = `SELECT t.id, t.name, t.color, COUNT(et.entry_id) AS count
+    FROM tags t
+    LEFT JOIN entry_tags et ON et.tag_id = t.id
+    GROUP BY t.id
+    ORDER BY count DESC, t.name ASC
+    ${limit ? "LIMIT ?" : ""}`;
+
+  return (limit ? db.prepare(query).all(limit) : db.prepare(query).all()) as TagWithCount[];
 }
 
 export function getRecentMoodEntries(limit = 30): MoodEntry[] {
@@ -180,6 +228,48 @@ export function getWeeklySummary(): WeeklySummary {
     total_expenses: financeRow.total_expenses ?? 0,
     journal_days: journalRow.journal_days ?? 0
   };
+}
+
+export function searchEntries(query: string, limit = 20): SearchResult[] {
+  if (!query.trim()) {
+    return [];
+  }
+
+  try {
+    return db
+      .prepare(
+        `SELECT
+          e.id,
+          snippet(entries_fts, 0, '<mark>', '</mark>', '...', 24) AS excerpt,
+          e.created_at
+        FROM entries e
+        JOIN entries_fts ON entries_fts.rowid = e.id
+        WHERE entries_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?`
+      )
+      .all(query.trim(), limit) as SearchResult[];
+  } catch {
+    return [];
+  }
+}
+
+export function getOnThisDay(): OnThisDayEntry[] {
+  return db
+    .prepare(
+      `SELECT
+        id,
+        raw_text,
+        created_at,
+        CAST(strftime('%Y', 'now') AS INTEGER) -
+        CAST(strftime('%Y', created_at) AS INTEGER) AS years_ago
+      FROM entries
+      WHERE strftime('%m-%d', created_at) = strftime('%m-%d', 'now')
+        AND strftime('%Y', created_at) < strftime('%Y', 'now')
+      ORDER BY created_at DESC
+      LIMIT 3`
+    )
+    .all() as OnThisDayEntry[];
 }
 
 function formatMonthKey(key: string): string {
