@@ -77,6 +77,12 @@ export function verifySessionValue(value?: string) {
   }
 }
 
+export function getSession() {
+  const session = cookies().get(SESSION_COOKIE_NAME)?.value;
+
+  return verifySessionValue(session) ? { authenticated: true } : null;
+}
+
 export function verifyPassword(password: string) {
   const passwordHash = process.env.AUTH_PASSWORD_HASH;
 
