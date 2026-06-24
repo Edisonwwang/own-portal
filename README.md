@@ -55,6 +55,35 @@ The database file defaults to `./data/portal.db`. The schema initializes automat
 
 Local database files under `data/*.db` are ignored by git.
 
+## Automated Backups
+
+First enable 2-Step Verification on your Gmail account, then create a Gmail App Password named "Personal Portal". Add these values to `.env.local`:
+
+```bash
+GMAIL_USER=your.email@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+GMAIL_BACKUP_TO=your.email@gmail.com
+```
+
+Run a manual backup:
+
+```bash
+npm run backup
+```
+
+To schedule weekly automatic backups on Windows:
+
+1. Open Task Scheduler (search "Task Scheduler" in Start)
+2. Click "Create Basic Task"
+3. Name: "Personal Portal Backup"
+4. Trigger: Weekly, pick a day/time (e.g. Sunday 9 AM)
+5. Action: Start a program
+   Program: `C:\Windows\System32\cmd.exe`
+   Arguments: `/c "cd /d C:\Users\yuanzhi.wang\Projects\ouji\www\personal-portal && npm run backup >> logs\backup.log 2>&1"`
+6. Finish
+
+This runs the backup script weekly and appends output to `logs\backup.log`. Make sure Node.js is on your system PATH by opening cmd and running `node --version`.
+
 ## Fly.io Deployment
 
 This project uses a Dockerfile because `better-sqlite3` has native bindings and should be built in a Linux environment compatible with the runtime image.

@@ -7,7 +7,8 @@ const navItems = [
   { href: "/journal", label: "Journal", icon: "J" },
   { href: "/mood", label: "Mood", icon: "M" },
   { href: "/finance", label: "Finance", icon: "F" },
-  { href: "/search", label: "Search", icon: "S" }
+  { href: "/search", label: "Search", icon: "S" },
+  { href: "/settings", label: "Settings", icon: "G" }
 ];
 
 function NavLinks() {
@@ -47,7 +48,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <main className="pb-24 md:ml-56 md:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 grid grid-cols-5 border-t border-stone-800 bg-[#111111] p-2 md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 grid grid-cols-6 border-t border-stone-800 bg-[#111111] p-2 md:hidden">
         {navItems.map((item) => (
           <Link
             key={item.href}
