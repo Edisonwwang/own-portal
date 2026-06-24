@@ -1,27 +1,23 @@
+import { MoodTrendChart } from "@/components/charts/MoodTrendChart";
 import { EntryCard } from "@/components/ui/EntryCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { db } from "@/lib/db";
-
-type MoodEntry = {
-  id: number;
-  mood_score: number | null;
-  energy_score: number | null;
-  note: string | null;
-  created_at: string;
-};
+import { getMoodTrend, getRecentMoodEntries } from "@/lib/queries";
 
 function formatDate(value: string) {
   return new Date(`${value}Z`).toLocaleString();
 }
 
 export default function MoodPage() {
-  const entries = db
-    .prepare("SELECT id, mood_score, energy_score, note, created_at FROM mood_entries ORDER BY created_at DESC LIMIT 30")
-    .all() as MoodEntry[];
+  const trend = getMoodTrend(30);
+  const entries = getRecentMoodEntries(30);
 
   return (
     <>
       <PageHeader title="Mood" description="The most recent 30 mood logs, newest first." />
+      <section className="mb-8 rounded-lg border border-stone-800 bg-[#111111] p-4">
+        <h2 className="mb-4 text-lg font-medium text-stone-100">Last 30 days</h2>
+        <MoodTrendChart data={trend} />
+      </section>
       <div className="space-y-4">
         {entries.length === 0 ? <p className="text-sm text-stone-500">No mood logs yet.</p> : null}
         {entries.map((entry) => (

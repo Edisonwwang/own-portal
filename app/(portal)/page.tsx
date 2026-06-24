@@ -3,49 +3,19 @@ import { JournalForm } from "@/components/forms/JournalForm";
 import { MoodForm } from "@/components/forms/MoodForm";
 import { EntryCard } from "@/components/ui/EntryCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { db } from "@/lib/db";
+import { WeeklySummaryWidget } from "@/components/WeeklySummaryWidget";
+import { getRecentJournalEntries, getTodaysFinanceEntries, getTodaysMoodEntries, getWeeklySummary } from "@/lib/queries";
 import Link from "next/link";
-
-type JournalEntry = {
-  id: number;
-  raw_text: string;
-  created_at: string;
-};
-
-type MoodEntry = {
-  id: number;
-  mood_score: number | null;
-  energy_score: number | null;
-  note: string | null;
-  created_at: string;
-};
-
-type FinanceEntry = {
-  id: number;
-  type: "income" | "expense";
-  amount: number;
-  currency: string;
-  category: string | null;
-  description: string | null;
-  created_at: string;
-};
 
 function formatDate(value: string) {
   return new Date(`${value}Z`).toLocaleString();
 }
 
 export default function HomePage() {
-  const journalEntries = db
-    .prepare("SELECT id, raw_text, created_at FROM entries ORDER BY created_at DESC LIMIT 5")
-    .all() as JournalEntry[];
-  const moodEntries = db
-    .prepare("SELECT id, mood_score, energy_score, note, created_at FROM mood_entries WHERE date(created_at) = date('now') ORDER BY created_at DESC")
-    .all() as MoodEntry[];
-  const financeEntries = db
-    .prepare(
-      "SELECT id, type, amount, currency, category, description, created_at FROM finance_entries WHERE date(created_at) = date('now') ORDER BY created_at DESC"
-    )
-    .all() as FinanceEntry[];
+  const weeklySummary = getWeeklySummary();
+  const journalEntries = getRecentJournalEntries(5);
+  const moodEntries = getTodaysMoodEntries();
+  const financeEntries = getTodaysFinanceEntries();
 
   const todayLog = [
     ...moodEntries.map((entry) => ({ kind: "Mood" as const, created_at: entry.created_at, entry })),
@@ -55,6 +25,7 @@ export default function HomePage() {
   return (
     <>
       <PageHeader title="Home" description="Capture the day without turning it into a dashboard." />
+      <WeeklySummaryWidget summary={weeklySummary} />
 
       <section className="space-y-5">
         <div className="flex items-center justify-between">

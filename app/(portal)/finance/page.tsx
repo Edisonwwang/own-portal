@@ -1,51 +1,46 @@
+import { FinanceBarChart } from "@/components/charts/FinanceBarChart";
+import { SpendingPieChart } from "@/components/charts/SpendingPieChart";
 import { EntryCard } from "@/components/ui/EntryCard";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { db } from "@/lib/db";
-
-type FinanceEntry = {
-  id: number;
-  type: "income" | "expense";
-  amount: number;
-  currency: string;
-  category: string | null;
-  description: string | null;
-  created_at: string;
-};
-
-type Totals = {
-  income: number | null;
-  expense: number | null;
-};
+import { getFinanceByMonth, getMonthlyFinanceTotals, getRecentFinanceEntries, getSpendingByCategory } from "@/lib/queries";
 
 function formatDate(value: string) {
   return new Date(`${value}Z`).toLocaleString();
 }
 
 export default function FinancePage() {
-  const entries = db
-    .prepare("SELECT id, type, amount, currency, category, description, created_at FROM finance_entries ORDER BY created_at DESC LIMIT 30")
-    .all() as FinanceEntry[];
-  const totals = db
-    .prepare(
-      `SELECT
-        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS income,
-        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS expense
-       FROM finance_entries
-       WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`
-    )
-    .get() as Totals;
+  const entries = getRecentFinanceEntries(30);
+  const totals = getMonthlyFinanceTotals();
+  const monthlyData = getFinanceByMonth(6);
+  const categorySpend = getSpendingByCategory();
 
   return (
     <>
       <PageHeader title="Finance" description="The most recent 30 finance logs, newest first." />
-      <section className="mb-6 grid gap-3 sm:grid-cols-2">
+      <section className="mb-6 grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border border-stone-800 bg-[#111111] p-4">
           <p className="text-xs uppercase tracking-wide text-stone-500">Income this month</p>
-          <p className="mt-2 text-xl font-semibold text-emerald-300">{(totals.income ?? 0).toFixed(2)} MYR</p>
+          <p className="mt-2 text-xl font-semibold text-emerald-300">{totals.income.toFixed(2)} MYR</p>
         </div>
         <div className="rounded-lg border border-stone-800 bg-[#111111] p-4">
           <p className="text-xs uppercase tracking-wide text-stone-500">Expenses this month</p>
-          <p className="mt-2 text-xl font-semibold text-red-300">{(totals.expense ?? 0).toFixed(2)} MYR</p>
+          <p className="mt-2 text-xl font-semibold text-red-300">{totals.expenses.toFixed(2)} MYR</p>
+        </div>
+        <div className="rounded-lg border border-stone-800 bg-[#111111] p-4">
+          <p className="text-xs uppercase tracking-wide text-stone-500">Net this month</p>
+          <p className={`mt-2 text-xl font-semibold ${totals.net >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+            {totals.net.toFixed(2)} MYR
+          </p>
+        </div>
+      </section>
+      <section className="mb-6 rounded-lg border border-stone-800 bg-[#111111] p-4">
+        <h2 className="mb-4 text-lg font-medium text-stone-100">Last 6 months</h2>
+        <FinanceBarChart data={monthlyData} />
+      </section>
+      <section className="mb-8 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-lg border border-stone-800 bg-[#111111] p-4">
+          <h2 className="mb-4 text-lg font-medium text-stone-100">Spending by category</h2>
+          <SpendingPieChart data={categorySpend} />
         </div>
       </section>
       <div className="space-y-4">
